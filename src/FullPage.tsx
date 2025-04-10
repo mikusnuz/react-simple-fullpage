@@ -10,22 +10,18 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
   activeDotColor = "#000",
   dotSize = 10,
 }) => {
-  // ===== 상태 관리 =====
   const [activeSection, setActiveSection] = useState(0);
   const sectionsCount = React.Children.count(children);
 
-  // 활성 섹션 추적
   const activeSectionRef = useRef(activeSection);
   useEffect(() => {
     activeSectionRef.current = activeSection;
   }, [activeSection]);
 
-  // 스크롤 잠금 관련
   const isScrollingRef = useRef(false);
   const lastTransitionTimeRef = useRef(0);
   const gestureLockDuration = scrollingSpeed < 1000 ? 1200 : 1000;
 
-  // 제스처 관련
   const gestureActiveRef = useRef(false);
   const gestureHasTransitionedRef = useRef(false);
   const wheelAccumRef = useRef(0);
@@ -33,19 +29,31 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
   const threshold = 50;
   const gestureDebounceDelay = 50;
 
-  // Dot 표시 관련
   const [showDots, setShowDots] = useState(showDotsAlways);
   const showDotsRef = useRef(showDotsAlways);
   const showDotsTimerRef = useRef<number | null>(null);
 
-  // showDotsAlways 값 변경 감지
   useEffect(() => {
     showDotsRef.current = showDotsAlways;
     setShowDots(showDotsAlways);
   }, [showDotsAlways]);
 
-  // ===== 유틸리티 함수 =====
-  // Dot 임시 표시 함수
+  useEffect(() => {
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
+    };
+
+    setVh();
+    window.addEventListener("resize", setVh);
+    window.addEventListener("orientationchange", setVh);
+
+    return () => {
+      window.removeEventListener("resize", setVh);
+      window.removeEventListener("orientationchange", setVh);
+    };
+  }, []);
+
   const showDotsTemporarily = () => {
     if (!showDotsRef.current) {
       setShowDots(true);
@@ -63,8 +71,6 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
     }
   };
 
-  // ===== 이벤트 핸들러 =====
-  // 휠 이벤트 처리
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     const now = Date.now();
@@ -111,10 +117,16 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
     }, gestureDebounceDelay);
   };
 
-  // 터치 이벤트 처리
   let touchStartY: number | null = null;
 
   const handleTouchStart = (e: TouchEvent) => {
+    if (
+      (activeSection === 0 && e.touches[0].clientY < window.innerHeight / 2) ||
+      (activeSection === sectionsCount - 1 && e.touches[0].clientY > window.innerHeight / 2)
+    ) {
+      e.preventDefault();
+    }
+
     if (isScrollingRef.current) return;
     showDotsTemporarily();
     touchStartY = e.touches[0].clientY;
@@ -141,7 +153,6 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
     touchStartY = null;
   };
 
-  // 페이지네이션 클릭 처리
   const handlePaginationClick = (index: number) => {
     if (isScrollingRef.current || index === activeSection) return;
     showDotsTemporarily();
@@ -153,24 +164,32 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
     }, scrollingSpeed);
   };
 
-  // ===== 이벤트 리스너 설정 =====
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     window.addEventListener("wheel", handleWheel as unknown as EventListener, { passive: false });
-    window.addEventListener("touchstart", handleTouchStart as unknown as EventListener, { passive: true });
+
+    window.addEventListener("touchstart", handleTouchStart as unknown as EventListener, { passive: false });
     window.addEventListener("touchend", handleTouchEnd as unknown as EventListener);
+
+    const preventPullToRefresh = (e: TouchEvent) => {
+      const touchY = e.touches[0].clientY;
+      if (touchStartY && touchY > touchStartY) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchmove", preventPullToRefresh as unknown as EventListener, { passive: false });
 
     return () => {
       window.removeEventListener("wheel", handleWheel as unknown as EventListener);
       window.removeEventListener("touchstart", handleTouchStart as unknown as EventListener);
       window.removeEventListener("touchend", handleTouchEnd as unknown as EventListener);
+      document.removeEventListener("touchmove", preventPullToRefresh as unknown as EventListener);
       if (wheelGestureTimerRef.current) clearTimeout(wheelGestureTimerRef.current);
       if (showDotsTimerRef.current) clearTimeout(showDotsTimerRef.current);
     };
   }, [sectionsCount, scrollingSpeed]);
 
-  // ===== UI 컴포넌트 =====
-  // 페이지네이션 렌더링
   const renderPagination = () => (
     <div
       className={`swiper-pagination mainfull_navi ${showDots ? "visible" : "hidden"}`}
@@ -192,7 +211,6 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
     </div>
   );
 
-  // ===== 스타일 업데이트 =====
   useEffect(() => {
     if (activeSection === 1) {
       document.querySelector(".mainfull_navi")?.classList.add("bk");
@@ -217,13 +235,12 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
     }
   }, [activeSection]);
 
-  // ===== 렌더링 =====
   return (
     <div className="fullpage-container">
       <div
         className="fullpage-sections-wrapper"
         style={{
-          transform: `translateY(-${activeSection * 100}vh)`,
+          transform: `translateY(-${activeSection * 100}%)`,
           transition: `transform ${scrollingSpeed}ms ease`,
         }}
       >

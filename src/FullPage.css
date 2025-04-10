@@ -1,8 +1,26 @@
-.fullpage-container {
-  position: relative;
-  width: 100%;
-  height: 100vh;
+body {
+  overscroll-behavior-y: contain;
   overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+html {
+  overscroll-behavior-y: contain;
+  height: 100%;
+}
+
+.fullpage-container {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  touch-action: none;
 }
 
 .fullpage-sections-wrapper {
@@ -14,9 +32,17 @@
 
 .fullpage-section {
   width: 100%;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.fullpage-section > * {
+  max-height: 100%;
+  overflow: auto;
+  flex: 1;
 }
 
 .swiper-pagination.mainfull_navi {
