@@ -24,6 +24,7 @@ pnpm add react-simple-fullpage
 
 - 🔄 Smooth section transitions
 - 👆 Touch gesture support
+- ↔️ Supports vertical and horizontal scrolling
 - 🔢 Pagination dots with customization
 - 🪶 Lightweight
 - ⚡ No dependencies, just React
@@ -35,7 +36,14 @@ import React from "react";
 import FullPage from "react-simple-fullpage";
 
 const App = () => (
-  <FullPage scrollingSpeed={1000} showDotsAlways={true} dotColor="#333" activeDotColor="#ff6600" dotSize={12}>
+  <FullPage
+    scrollingSpeed={1000}
+    direction="vertical"
+    showDotsAlways={true}
+    dotColor="#333"
+    activeDotColor="#ff6600"
+    dotSize={10}
+  >
     <FullPage.Section>
       <h1>Welcome to my website</h1>
       <p>Scroll down to explore more</p>
@@ -60,14 +68,15 @@ export default App;
 
 ### `<FullPage>` Props
 
-| Prop             | Type      | Default  | Description                                                                                      |
-| ---------------- | --------- | -------- | ------------------------------------------------------------------------------------------------ |
-| `scrollingSpeed` | `number`  | `1000`   | Duration of scroll transition in milliseconds                                                    |
-| `showDotsAlways` | `boolean` | `true`   | When `true`, pagination dots are always visible. When `false`, dots appear only during scrolling |
-| `dotColor`       | `string`  | `"#fff"` | Color of inactive pagination dots                                                                |
-| `activeDotColor` | `string`  | `"#fff"` | Color of the active pagination dot                                                               |
-| `dotSize`        | `number`  | `12`     | Size of pagination dots in pixels                                                                |
-| `children`       | `node`    | Required | Section components to be rendered                                                                |
+| Prop             | Type                         | Default      | Description                                                                                      |
+| ---------------- | ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| `scrollingSpeed` | `number`                     | `1000`       | Duration of scroll transition in milliseconds                                                    |
+| `direction`      | `"vertical" \| "horizontal"` | `"vertical"` | Sets the scroll direction                                                                        |
+| `showDotsAlways` | `boolean`                    | `true`       | When `true`, pagination dots are always visible. When `false`, dots appear only during scrolling |
+| `dotColor`       | `string`                     | `"#aaa"`     | Color of inactive pagination dots                                                                |
+| `activeDotColor` | `string`                     | `"#000"`     | Color of the active pagination dot                                                               |
+| `dotSize`        | `number`                     | `10`         | Size of pagination dots in pixels                                                                |
+| `children`       | `node`                       | Required     | Section components to be rendered                                                                |
 
 ### `<FullPage.Section>` Props
 

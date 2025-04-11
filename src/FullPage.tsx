@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FullPageProps, SectionProps } from "./types";
 import "./FullPage.css";
 
@@ -9,9 +9,11 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
   dotColor = "#aaa",
   activeDotColor = "#000",
   dotSize = 10,
+  direction = "vertical",
 }) => {
   const [activeSection, setActiveSection] = useState(0);
   const sectionsCount = React.Children.count(children);
+  const isHorizontal = direction === "horizontal";
 
   const activeSectionRef = useRef(activeSection);
   useEffect(() => {
@@ -20,7 +22,7 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
 
   const isScrollingRef = useRef(false);
   const lastTransitionTimeRef = useRef(0);
-  const gestureLockDuration = scrollingSpeed < 1000 ? 1200 : 1000;
+  const gestureLockDuration = 1100;
 
   const gestureActiveRef = useRef(false);
   const gestureHasTransitionedRef = useRef(false);
@@ -36,7 +38,7 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
   useEffect(() => {
     showDotsRef.current = showDotsAlways;
     setShowDots(showDotsAlways);
-  }, [showDotsAlways]);
+  }, [showDotsAlways, scrollingSpeed]);
 
   useEffect(() => {
     const setVh = () => {
@@ -54,7 +56,7 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
     };
   }, []);
 
-  const showDotsTemporarily = () => {
+  const showDotsTemporarily = useCallback(() => {
     if (!showDotsRef.current) {
       setShowDots(true);
 
@@ -69,100 +71,153 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
         showDotsTimerRef.current = null;
       }, scrollingSpeed);
     }
-  };
+  }, [showDotsRef, scrollingSpeed]);
 
-  const handleWheel = (e: WheelEvent) => {
-    e.preventDefault();
-    const now = Date.now();
-
-    showDotsTemporarily();
-
-    if (now - lastTransitionTimeRef.current < gestureLockDuration) {
-      return;
-    }
-
-    if (!gestureActiveRef.current) {
-      gestureActiveRef.current = true;
-      wheelAccumRef.current = 0;
-      gestureHasTransitionedRef.current = false;
-    }
-
-    wheelAccumRef.current += e.deltaY;
-
-    if (!gestureHasTransitionedRef.current && Math.abs(wheelAccumRef.current) >= threshold) {
-      const direction = wheelAccumRef.current > 0 ? 1 : -1;
-      const nextSection = activeSectionRef.current + direction;
-      if (nextSection >= 0 && nextSection < sectionsCount) {
-        gestureHasTransitionedRef.current = true;
-        isScrollingRef.current = true;
-        setActiveSection(nextSection);
-        lastTransitionTimeRef.current = now;
-        wheelAccumRef.current = 0;
-        setTimeout(() => {
-          isScrollingRef.current = false;
-        }, scrollingSpeed);
-      } else {
-        wheelAccumRef.current = 0;
-      }
-    }
-
-    if (wheelGestureTimerRef.current) {
-      clearTimeout(wheelGestureTimerRef.current);
-    }
-    wheelGestureTimerRef.current = window.setTimeout(() => {
-      gestureActiveRef.current = false;
-      gestureHasTransitionedRef.current = false;
-      wheelAccumRef.current = 0;
-      wheelGestureTimerRef.current = null;
-    }, gestureDebounceDelay);
-  };
-
-  let touchStartY: number | null = null;
-
-  const handleTouchStart = (e: TouchEvent) => {
-    if (
-      (activeSection === 0 && e.touches[0].clientY < window.innerHeight / 2) ||
-      (activeSection === sectionsCount - 1 && e.touches[0].clientY > window.innerHeight / 2)
-    ) {
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
       e.preventDefault();
-    }
+      const now = Date.now();
 
-    if (isScrollingRef.current) return;
-    showDotsTemporarily();
-    touchStartY = e.touches[0].clientY;
-  };
+      showDotsTemporarily();
 
-  const handleTouchEnd = (e: TouchEvent) => {
-    if (isScrollingRef.current || touchStartY === null) return;
-    const touchEndY = e.changedTouches[0].clientY;
-    const diff = touchStartY - touchEndY;
-    const touchThreshold = 70;
-
-    if (Math.abs(diff) >= touchThreshold) {
-      const direction = diff > 0 ? 1 : -1;
-      const nextSection = activeSectionRef.current + direction;
-      if (nextSection >= 0 && nextSection < sectionsCount) {
-        isScrollingRef.current = true;
-        setActiveSection(nextSection);
-        lastTransitionTimeRef.current = Date.now();
-        setTimeout(() => {
-          isScrollingRef.current = false;
-        }, scrollingSpeed);
+      if (now - lastTransitionTimeRef.current < gestureLockDuration) {
+        return;
       }
-    }
-    touchStartY = null;
-  };
 
-  const handlePaginationClick = (index: number) => {
-    if (isScrollingRef.current || index === activeSection) return;
-    showDotsTemporarily();
-    isScrollingRef.current = true;
-    setActiveSection(index);
-    lastTransitionTimeRef.current = Date.now();
-    setTimeout(() => {
-      isScrollingRef.current = false;
-    }, scrollingSpeed);
-  };
+      if (!gestureActiveRef.current) {
+        gestureActiveRef.current = true;
+        wheelAccumRef.current = 0;
+        gestureHasTransitionedRef.current = false;
+      }
+
+      const delta = isHorizontal ? e.deltaX || e.deltaY : e.deltaY;
+      wheelAccumRef.current += delta;
+
+      if (!gestureHasTransitionedRef.current && Math.abs(wheelAccumRef.current) >= threshold) {
+        const direction = wheelAccumRef.current > 0 ? 1 : -1;
+        const nextSection = activeSectionRef.current + direction;
+        if (nextSection >= 0 && nextSection < sectionsCount) {
+          gestureHasTransitionedRef.current = true;
+          isScrollingRef.current = true;
+          setActiveSection(nextSection);
+          lastTransitionTimeRef.current = now;
+          wheelAccumRef.current = 0;
+
+          if (wheelGestureTimerRef.current) {
+            clearTimeout(wheelGestureTimerRef.current);
+          }
+          wheelGestureTimerRef.current = window.setTimeout(() => {
+            isScrollingRef.current = false;
+            gestureActiveRef.current = false;
+            gestureHasTransitionedRef.current = false;
+            wheelAccumRef.current = 0;
+            wheelGestureTimerRef.current = null;
+          }, scrollingSpeed);
+        } else {
+          wheelAccumRef.current = 0;
+        }
+      }
+
+      if (wheelGestureTimerRef.current) {
+        clearTimeout(wheelGestureTimerRef.current);
+      }
+      wheelGestureTimerRef.current = window.setTimeout(() => {
+        gestureActiveRef.current = false;
+        gestureHasTransitionedRef.current = false;
+        wheelAccumRef.current = 0;
+        wheelGestureTimerRef.current = null;
+      }, gestureDebounceDelay);
+    },
+    [isHorizontal, sectionsCount, scrollingSpeed, showDotsTemporarily]
+  );
+
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = useCallback(
+    (e: TouchEvent) => {
+      if (isHorizontal) {
+        if (
+          (activeSectionRef.current === 0 && e.touches[0].clientX < window.innerWidth / 2) ||
+          (activeSectionRef.current === sectionsCount - 1 && e.touches[0].clientX > window.innerWidth / 2)
+        ) {
+          e.preventDefault();
+        }
+        touchStartXRef.current = e.touches[0].clientX;
+      } else {
+        if (
+          (activeSectionRef.current === 0 && e.touches[0].clientY < window.innerHeight / 2) ||
+          (activeSectionRef.current === sectionsCount - 1 && e.touches[0].clientY > window.innerHeight / 2)
+        ) {
+          e.preventDefault();
+        }
+        touchStartYRef.current = e.touches[0].clientY;
+      }
+
+      if (isScrollingRef.current) return;
+      showDotsTemporarily();
+    },
+    [isHorizontal, sectionsCount, showDotsTemporarily]
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent) => {
+      if (isScrollingRef.current) return;
+
+      if (isHorizontal && touchStartXRef.current !== null) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const diff = touchStartXRef.current - touchEndX;
+        const touchThreshold = 70;
+
+        if (Math.abs(diff) >= touchThreshold) {
+          const direction = diff > 0 ? 1 : -1;
+          const nextSection = activeSectionRef.current + direction;
+          if (nextSection >= 0 && nextSection < sectionsCount) {
+            isScrollingRef.current = true;
+            setActiveSection(nextSection);
+            lastTransitionTimeRef.current = Date.now();
+            setTimeout(() => {
+              isScrollingRef.current = false;
+            }, scrollingSpeed);
+          }
+        }
+        touchStartXRef.current = null;
+      } else if (!isHorizontal && touchStartYRef.current !== null) {
+        const touchEndY = e.changedTouches[0].clientY;
+        const diff = touchStartYRef.current - touchEndY;
+        const touchThreshold = 70;
+
+        if (Math.abs(diff) >= touchThreshold) {
+          const direction = diff > 0 ? 1 : -1;
+          const nextSection = activeSectionRef.current + direction;
+          if (nextSection >= 0 && nextSection < sectionsCount) {
+            isScrollingRef.current = true;
+            setActiveSection(nextSection);
+            lastTransitionTimeRef.current = Date.now();
+            setTimeout(() => {
+              isScrollingRef.current = false;
+            }, scrollingSpeed);
+          }
+        }
+        touchStartYRef.current = null;
+      }
+    },
+    [isHorizontal, sectionsCount, scrollingSpeed]
+  );
+
+  const handlePaginationClick = useCallback(
+    (index: number) => {
+      if (isScrollingRef.current || index === activeSection) return;
+      showDotsTemporarily();
+      isScrollingRef.current = true;
+      setActiveSection(index);
+      lastTransitionTimeRef.current = Date.now();
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, scrollingSpeed);
+    },
+    [activeSection, scrollingSpeed, showDotsTemporarily]
+  );
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,9 +227,16 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
     window.addEventListener("touchend", handleTouchEnd as unknown as EventListener);
 
     const preventPullToRefresh = (e: TouchEvent) => {
-      const touchY = e.touches[0].clientY;
-      if (touchStartY && touchY > touchStartY) {
-        e.preventDefault();
+      if (isHorizontal && touchStartXRef.current) {
+        const touchX = e.touches[0].clientX;
+        if (touchX > touchStartXRef.current) {
+          e.preventDefault();
+        }
+      } else if (!isHorizontal && touchStartYRef.current) {
+        const touchY = e.touches[0].clientY;
+        if (touchY > touchStartYRef.current) {
+          e.preventDefault();
+        }
       }
     };
 
@@ -188,11 +250,13 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
       if (wheelGestureTimerRef.current) clearTimeout(wheelGestureTimerRef.current);
       if (showDotsTimerRef.current) clearTimeout(showDotsTimerRef.current);
     };
-  }, [sectionsCount, scrollingSpeed]);
+  }, [sectionsCount, scrollingSpeed, isHorizontal, handleWheel, handleTouchStart, handleTouchEnd]);
 
   const renderPagination = () => (
     <div
-      className={`swiper-pagination mainfull_navi ${showDots ? "visible" : "hidden"}`}
+      className={`swiper-pagination mainfull_navi ${showDots ? "visible" : "hidden"} ${
+        isHorizontal ? "horizontal" : "vertical"
+      }`}
       onMouseEnter={showDotsTemporarily}
     >
       {Array.from({ length: sectionsCount }).map((_, index) => (
@@ -238,9 +302,9 @@ const FullPage: React.FC<FullPageProps> & { Section: React.FC<SectionProps> } = 
   return (
     <div className="fullpage-container">
       <div
-        className="fullpage-sections-wrapper"
+        className={`fullpage-sections-wrapper ${isHorizontal ? "horizontal" : "vertical"}`}
         style={{
-          transform: `translateY(-${activeSection * 100}%)`,
+          transform: isHorizontal ? `translateX(-${activeSection * 100}%)` : `translateY(-${activeSection * 100}%)`,
           transition: `transform ${scrollingSpeed}ms ease`,
         }}
       >

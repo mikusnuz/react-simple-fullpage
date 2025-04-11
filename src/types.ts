@@ -7,6 +7,7 @@ export interface FullPageProps {
   dotColor?: string;
   activeDotColor?: string;
   dotSize?: number;
+  direction?: "vertical" | "horizontal";
 }
 
 export interface SectionProps {

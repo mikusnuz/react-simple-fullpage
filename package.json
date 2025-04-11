@@ -4,6 +4,7 @@
   "description": "A simple and lightweight fullpage scrolling component for React",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
+  "types": "dist/types/index.d.ts",
   "type": "module",
   "files": [
     "dist"
