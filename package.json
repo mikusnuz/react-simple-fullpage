@@ -1,6 +1,6 @@
 {
   "name": "react-simple-fullpage",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A simple and lightweight fullpage scrolling component for React",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
