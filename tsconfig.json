@@ -5,7 +5,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "declaration": true,
     "declarationDir": "dist/types",
-    "sourceMap": true,
+    "sourceMap": false,
     "outDir": "dist",
     "strict": true,
     "jsx": "react",
